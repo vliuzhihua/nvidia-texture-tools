@@ -3,6 +3,7 @@
 #include "FloatImage.h"
 #include "Filter.h"
 #include "Image.h"
+#include "AlphaPyramid.h"
 
 #include "nvthread/ParallelFor.h"
 
@@ -17,12 +18,11 @@
 #include "nvcore/Memory.h"
 #include "nvcore/Array.inl"
 
+
 #include <math.h>
 #include <string.h> // memset, memcpy
 
-
 using namespace nv;
-
 
 /// Ctor.
 FloatImage::FloatImage() : m_componentCount(0), m_width(0), m_height(0), m_depth(0),
@@ -102,7 +102,6 @@ Image * FloatImage::createImage(uint baseComponent/*= 0*/, uint num/*= 4*/) cons
 
     return img.release();
 }
-
 
 /// Convert the floating point image to a regular image. Correct gamma of rgb, but not alpha.
 Image * FloatImage::createImageGammaCorrect(float gamma/*= 2.2f*/) const
@@ -419,7 +418,6 @@ float FloatImage::sampleNearestMirror(uint c, float x, float y, float z) const
     return pixel(c, ix, iy, iz);
 }
 
-
 float FloatImage::sampleLinearClamp(uint c, float x, float y) const
 {
     const int w = m_width;
@@ -547,7 +545,6 @@ float FloatImage::sampleLinearMirror(uint c, float x, float y, float z) const
 
     return trilerp(c, ix0, iy0, iz0, ix1, iy1, iz1, fracX, fracY, fracZ);
 }
-
 
 /// Fast downsampling using box filter. 
 ///
@@ -756,7 +753,6 @@ FloatImage * FloatImage::downSample(const Filter & filter, WrapMode wm, uint alp
     return resize(filter, w, h, d, wm, alpha);
 }
 
-
 /// Downsample applying a 1D kernel separately in each dimension.
 FloatImage * FloatImage::resize(const Filter & filter, uint w, uint h, WrapMode wm) const
 {
@@ -872,7 +868,6 @@ FloatImage * FloatImage::resize(const Filter & filter, uint w, uint h, uint d, W
     return dst_image.release();
 }
 
-
 /// Downsample applying a 1D kernel separately in each dimension.
 FloatImage * FloatImage::resize(const Filter & filter, uint w, uint h, WrapMode wm, uint alpha) const
 {
@@ -923,7 +918,6 @@ FloatImage * FloatImage::resize(const Filter & filter, uint w, uint h, WrapMode 
 
     return dst_image.release();
 }
-
 
 /// Downsample applying a 1D kernel separately in each dimension. (for 3d textures)
 FloatImage * FloatImage::resize(const Filter & filter, uint w, uint h, uint d, WrapMode wm, uint alpha) const
@@ -993,7 +987,6 @@ FloatImage * FloatImage::resize(const Filter & filter, uint w, uint h, uint d, W
     return dst_image.release();
 }
 
-
 void FloatImage::convolve(const Kernel2 & k, uint c, WrapMode wm)
 {
     AutoPtr<FloatImage> tmpImage(clone());
@@ -1013,7 +1006,6 @@ void FloatImage::convolve(const Kernel2 & k, uint c, WrapMode wm)
         }
     }
 }
-
 
 /// Apply 2D kernel at the given coordinates and return result.
 float FloatImage::applyKernelXY(const Kernel2 * k, int x, int y, int z, uint c, WrapMode wm) const
@@ -1042,7 +1034,6 @@ float FloatImage::applyKernelXY(const Kernel2 * k, int x, int y, int z, uint c, 
 
     return sum;
 }
-
 
 /// Apply 1D horizontal kernel at the given coordinates and return result.
 float FloatImage::applyKernelX(const Kernel1 * k, int x, int y, int z, uint c, WrapMode wm) const
@@ -1109,7 +1100,6 @@ float FloatImage::applyKernelZ(const Kernel1 * k, int x, int y, int z, uint c, W
 
     return sum;
 }
-
 
 /// Apply 1D horizontal kernel at the given coordinates and return result.
 void FloatImage::applyKernelX(const PolyphaseKernel & k, int y, int z, uint c, WrapMode wm, float * __restrict output) const
@@ -1206,7 +1196,6 @@ void FloatImage::applyKernelZ(const PolyphaseKernel & k, int x, int y, uint c, W
         output[i] = sum;
     }
 }
-
 
 /// Apply 1D horizontal kernel at the given coordinates and return result.
 void FloatImage::applyKernelX(const PolyphaseKernel & k, int y, int z, uint c, uint a, WrapMode wm, float * __restrict output) const
@@ -1316,7 +1305,6 @@ void FloatImage::applyKernelZ(const PolyphaseKernel & k, int x, int y, uint c, u
     }
 }
 
-
 void FloatImage::flipX()
 {
     const uint w = m_width;
@@ -1373,8 +1361,6 @@ void FloatImage::flipZ()
         }
     }
 }
-
-
 
 float FloatImage::alphaTestCoverage(float alphaRef, int alphaChannel, float alphaScale/*=1*/) const
 {
@@ -1488,44 +1474,200 @@ void FloatImage::scaleAlphaToCoverage(float desiredCoverage, float alphaRef, int
     alphaTestCoverage(alphaRef, alphaChannel);
 #endif
 }
+
 void FloatImage::DoErrorDiffusion(int alphaChannel)
 {
-	const uint size = m_pixelCount;
+	float * ptr = this->channel(alphaChannel);
+	
+	/*
+	kernel pattern
+	1/16 	| - # 7|
+			| 3 5 1|
+	'-' is previous point position
+	'#' is current point position
+	Reference: https://en.wikipedia.org/wiki/Error_diffusion
+	*/
+	for (int h = 0; h < m_height; h++) {
+		for (int w = 0; w < m_width; w++) {
+			int cur_idx = h * m_width + w;
+			float cur_alpha = ptr[cur_idx];
+			float target_alpha = cur_alpha >= 0.5 ? 1.0 : 0.0;
+			float err = cur_alpha - target_alpha;
+			ptr[cur_idx] = target_alpha;
 
-	for (uint c = 0; c < 1; c++) {
-		float * ptr = this->channel(alphaChannel+ c);
-		
-		/*
-		kernel pattern
-		1/16 	| - # 7|
-				| 3 5 1|
-		*/
+			//weight calculation
+			float e[4] = { 7 * err / 16.0f, 3 * err / 16.0f, 5 * err / 16.0f, 1 * err / 16.0f };
+			float de = err - (e[0] + e[1] + e[2] + e[3]);
+			e[0] += de;
 
-		for (int h = 0; h < m_height; h++) {
-			for (int w = 0; w < m_width; w++) {
-				int cur_idx = h * m_width + w;
-				float cur_alpha = ptr[cur_idx];
-				float target_alpha = cur_alpha >= 0.5 ? 1.0 : 0.0;
-				float err = cur_alpha - target_alpha;
-				ptr[cur_idx] = target_alpha;
-
-				//weight calculation
-				float e[4] = { 7 * err / 16.0f, 3 * err / 16.0f, 5 * err / 16.0f, 1 * err / 16.0f };
-				float de = err - (e[0] + e[1] + e[2] + e[3]);
-				e[0] += de;
-
-				// right pixel
-				if (w + 1 < m_width) ptr[h * m_width + w + 1] += e[0];
-				if (h + 1 < m_height) {
-					//bottom left pixel
-					if (w > 0) ptr[(h + 1) * m_width + w - 1] += e[1];
-					ptr[(h + 1) * m_width + w] += e[2];
-					if (w + 1 < m_width) ptr[(h + 1) * m_width + w + 1] += e[3];
-				}
-
+			// right pixel
+			if (w + 1 < m_width) ptr[h * m_width + w + 1] += e[0];
+			if (h + 1 < m_height) {
+				//bottom left pixel
+				if (w > 0) ptr[(h + 1) * m_width + w - 1] += e[1];
+				ptr[(h + 1) * m_width + w] += e[2];
+				if (w + 1 < m_width) ptr[(h + 1) * m_width + w + 1] += e[3];
 			}
+
 		}
 	}
+}
+
+void FloatImage::DoAlphaPyramid(int alphaChannel, int spp) {
+	/*
+	Reference: http://www.cemyuksel.com/research/alphadistribution/
+	*/
+	float * image = this->channel(alphaChannel);
+	// Step 1: Compute the alpha pyramid
+	std::vector<AlphaPyramidLevel*> pyramid;
+	int pw = m_width / 2;
+	int ph = m_height / 2;
+	if (pw > 0 && ph > 0) {
+		// First level
+		uint32_t total_alpha = 0;
+		AlphaPyramidLevel *lev = new AlphaPyramidLevel;
+		lev->SetData(pw, ph, m_width, m_height, [&](int i) { return image[i]; } );
+		pyramid.push_back(lev);
+		// Higher levels
+		AlphaPyramidLevel *pLev = lev;
+		while (pw > 1 && ph > 1) {
+			int ww = pw;
+			int hh = ph;
+			pw /= 2;
+			ph /= 2;
+			AlphaPyramidLevel *lev = new AlphaPyramidLevel;
+			lev->SetData(pw, ph, ww, hh, [&](int i) { return pLev->alpha[i]; });
+			pyramid.push_back(lev);
+			pLev = lev;
+		}
+	}
+	// Step 2: Compute the number of texels that should pass the alpha test
+	uint32_t total_alpha = 0;
+	if (m_width > 1 && m_height > 1) {
+		AlphaPyramidLevel *level = pyramid.back();
+		for (int i = 0; i < (int)level->alpha.size(); i++) {
+			total_alpha += level->alpha[i];
+		}
+	}
+	else {
+		for (int i = 0; i < m_height * m_width; i++) {
+			uint32_t a0 = image[i];	// current value
+			total_alpha += a0;
+		}
+	}
+	int on_texels = (total_alpha*spp + 254) / 255;
+
+	// Step 3: Alpha to Count
+	int lvl = (int)pyramid.size() - 1;
+	if (lvl >= 0) {
+		pyramid[lvl]->Alpha2CountSimple(on_texels, spp);
+		for (lvl--; lvl >= 0; lvl--) {
+			pyramid[lvl]->Alpha2Count(pyramid[lvl + 1], spp);
+		}
+	}
+	// Step 4: Update texture
+	{
+		auto setImgAlpha = [&](const int *ix, int n, uint32_t count)
+		{
+			if (spp > 1) {
+				count *= 256 / spp;
+			}
+
+			unsigned char a[9];
+			assert(n <= 9);
+			for (int j = 0; j < n; j++) a[j] = 0;
+			uint32_t remSum = 0;
+			uint32_t rem = count;
+			while (rem > 0) {
+				int max_i = 0;
+				int eqCount = 1;
+				int max_v = image[ix[0]] - a[0];
+				if (max_v < 0) max_v = 0;
+				for (int j = 1; j < n; j++) {
+					int v = image[ix[j]] - a[j];
+					if (v < 0) v = 0;
+					if (max_v < v) {
+						max_v = v;
+						max_i = j;
+						eqCount = 1;
+					}
+				}
+				assert(max_v > 0);
+
+				if (spp > 1) {
+					unsigned char r = image[ix[max_i]] - a[max_i];
+					int inc = (r > 256 / spp) ? (256 / spp) : r;
+					if (inc == 0) break;
+					int new_a = a[max_i] + (256 / spp);
+					if (new_a > 255) new_a = 255;
+					a[max_i] = new_a;
+					remSum -= inc;
+					if (rem < uint32_t(256 / spp)) rem = 0;
+					else rem -= uint32_t(256 / spp);
+				}
+				else {
+					a[max_i] = image[ix[max_i]];
+					remSum -= max_v;
+					rem--;
+				}
+			}
+
+			if (spp > 1) {
+				for (int j = 0; j < n; j++) {
+					int av = ((a[j] + 128 / spp) / (256 / spp)) * (256 / spp) + 1;
+					if (av > 255) av = 255;
+					image[ix[j]] = av;
+				}
+			}
+			else {
+				for (int j = 0; j < n; j++) image[ix[j]] = a[j] ? 255 : 0;
+			}
+		};
+
+		if (pyramid.size() > 0) {
+			int hLim = (m_height & 1) ? m_height - 3 : m_height;
+			int wLim = (m_width & 1) ? m_width - 3 : m_width;
+			for (int ih = 0; ih < hLim; ih += 2) {
+				for (int iw = 0; iw < wLim; iw += 2) {
+					uint32_t count = pyramid[0]->GetAlpha(iw / 2, ih / 2);
+					int i = ih * m_width + iw;
+					int ix[] = { i, i + m_width + 1, i + 1, i + m_width };
+					setImgAlpha(ix, 4, count);
+				}
+				if (wLim < m_width) {
+					uint32_t count = pyramid[0]->GetAlpha(wLim / 2, ih / 2);
+					int i = ih * m_width + wLim;
+					int ix[] = { i, i + m_width + 1, i + 2, i + m_width, i + 1, i + m_width + 2 };
+					setImgAlpha(ix, 6, count);
+				}
+			}
+			if (hLim < m_height) {
+				for (int iw = 0; iw < wLim; iw += 2) {
+					uint32_t count = pyramid[0]->GetAlpha(iw / 2, hLim / 2);
+					int i = hLim * m_width + iw;
+					int ix[] = { i, i + m_width + 1, i + m_width + m_width, i + 1, i + m_width, i + m_width + m_width + 1 };
+					setImgAlpha(ix, 6, count);
+				}
+				if (wLim < m_width) {
+					uint32_t count = pyramid[0]->GetAlpha(wLim / 2, hLim / 2);
+					int i = hLim * m_width + wLim;
+					int ix[] = { i, i + m_width + m_width + 2, i + 2, 
+						i + m_width + m_width, i + m_width + 1, i + 1,
+						i + m_width + m_width + 1, i + m_width, i + m_width + 2 };
+					setImgAlpha(ix, 9, count);
+				}
+			}
+		}
+		else {
+			// no pyramid
+			int ix[9];
+			for (int i = 0; i < 9; i++) ix[i] = i;
+			setImgAlpha(ix, m_width * m_height, on_texels);
+		}
+	}
+	// Step 5: Clean up
+	for (int i = 0; i < (int)pyramid.size(); i++) delete pyramid[i];
+	pyramid.clear();
 }
 
 FloatImage* FloatImage::clone() const

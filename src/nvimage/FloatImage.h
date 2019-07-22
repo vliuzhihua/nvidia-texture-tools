@@ -106,7 +106,8 @@ namespace nv
 
         NVIMAGE_API float alphaTestCoverage(float alphaRef, int alphaChannel, float alphaScale = 1.0f) const;
         NVIMAGE_API void scaleAlphaToCoverage(float coverage, float alphaRef, int alphaChannel);
-        NVIMAGE_API void DoErrorDiffusion(int alphaChannel);
+        NVIMAGE_API void DoErrorDiffusion(int alphaChannel = 3, int spp = 1);
+        NVIMAGE_API void DoAlphaPyramid(int alphaChannel = 3, int spp = 1);
 
 
         uint width() const { return m_width; }
