@@ -324,6 +324,14 @@ void InputOptions::setNormalFilter(float small, float medium, float big, float l
     m.bumpFrequencyScale = Vector4(small, medium, big, large) / total;
 }
 
+void InputOptions::setAlphaCorrectAlgorithm(nvtt::AlphaCorrectAlgorithm alg) {
+	m.alphaCorrectAlg = alg;
+}
+
+void InputOptions::setAlphaRef(int val) {
+	m.alphaRef = val;
+}
+
 /// Enable mipmap normalization.
 void InputOptions::setNormalizeMipmaps(bool normalize)
 {

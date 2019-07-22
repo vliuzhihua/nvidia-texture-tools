@@ -155,6 +155,8 @@ int main(int argc, char *argv[])
     bool rgbm = false;
     bool rangescale = false;
     bool srgb = false;
+	int alphaRef = 127;
+	nvtt::AlphaCorrectAlgorithm algType = nvtt::AlphaCorrectAlgorithm_None;
 
     const char * externalCompressor = NULL;
 
@@ -287,88 +289,121 @@ int main(int argc, char *argv[])
             format = nvtt::Format_BC3_RGBM;
             rgbm = true;
         }
-        else if (strcmp("-etc1", argv[i]) == 0)
-        {
-            format = nvtt::Format_ETC1;
-        }
-        else if (strcmp("-etc2", argv[i]) == 0 || strcmp("-etc2_rgb", argv[i]) == 0)
-        {
-            format = nvtt::Format_ETC2_RGB;
-        }
-        else if (strcmp("-etc2_eac", argv[i]) == 0 || strcmp("-etc2_rgba", argv[i]) == 0)
-        {
-            format = nvtt::Format_ETC2_RGBA;
-        }
-        else if (strcmp("-eac", argv[i]) == 0 || strcmp("-etc2_r", argv[i]) == 0)
-        {
-            format = nvtt::Format_ETC2_R;
-        }
-        else if (strcmp("-etc2_rg", argv[i]) == 0)
-        {
-            format = nvtt::Format_ETC2_R;
-        }
-        else if (strcmp("-etc2_rgbm", argv[i]) == 0)
-        {
-            format = nvtt::Format_ETC2_RGBM;
-            rgbm = true;
-        }
+		else if (strcmp("-etc1", argv[i]) == 0)
+		{
+		format = nvtt::Format_ETC1;
+		}
+		else if (strcmp("-etc2", argv[i]) == 0 || strcmp("-etc2_rgb", argv[i]) == 0)
+		{
+		format = nvtt::Format_ETC2_RGB;
+		}
+		else if (strcmp("-etc2_eac", argv[i]) == 0 || strcmp("-etc2_rgba", argv[i]) == 0)
+		{
+		format = nvtt::Format_ETC2_RGBA;
+		}
+		else if (strcmp("-eac", argv[i]) == 0 || strcmp("-etc2_r", argv[i]) == 0)
+		{
+		format = nvtt::Format_ETC2_R;
+		}
+		else if (strcmp("-etc2_rg", argv[i]) == 0)
+		{
+		format = nvtt::Format_ETC2_R;
+		}
+		else if (strcmp("-etc2_rgbm", argv[i]) == 0)
+		{
+		format = nvtt::Format_ETC2_RGBM;
+		rgbm = true;
+		}
 
-        // Undocumented option. Mainly used for testing.
-        else if (strcmp("-ext", argv[i]) == 0)
-        {
-            if (i+1 < argc && argv[i+1][0] != '-') {
-                externalCompressor = argv[i+1];
-                i++;
-            }
-        }
-        else if (strcmp("-pause", argv[i]) == 0)
-        {
-            printf("Press ENTER\n"); fflush(stdout);
-            getchar();
-        }
+		// Undocumented option. Mainly used for testing.
+		else if (strcmp("-ext", argv[i]) == 0)
+		{
+		if (i + 1 < argc && argv[i + 1][0] != '-') {
+			externalCompressor = argv[i + 1];
+			i++;
+		}
+		}
+		else if (strcmp("-pause", argv[i]) == 0)
+		{
+		printf("Press ENTER\n"); fflush(stdout);
+		getchar();
+		}
 
-        // Output options
-        else if (strcmp("-silent", argv[i]) == 0)
-        {
-            silent = true;
-        }
-        else if (strcmp("-dds10", argv[i]) == 0)
-        {
-            dds10 = true;
-        }
-        else if (strcmp("-ktx", argv[i]) == 0)
-        {
-            ktx = true;
-        }
-        else if (strcmp("-srgb", argv[i]) == 0)
-        {
-            srgb = true;
-        }
-        
-        else if (argv[i][0] != '-')
-        {
-            input = argv[i];
+		// Output options
+		else if (strcmp("-silent", argv[i]) == 0)
+		{
+		silent = true;
+		}
+		else if (strcmp("-dds10", argv[i]) == 0)
+		{
+		dds10 = true;
+		}
+		else if (strcmp("-ktx", argv[i]) == 0)
+		{
+		ktx = true;
+		}
+		else if (strcmp("-srgb", argv[i]) == 0)
+		{
+		srgb = true;
+		}
 
-            if (i+1 < argc && argv[i+1][0] != '-') {
-                output = argv[i+1];
-            }
-            else
-            {
-                output.copy(input.str());
-                output.stripExtension();
-                
-                if (ktx)
-                {
-                    output.append(".ktx");
-                }
-                else
-                {
-                    output.append(".dds");
-                }
-            }
+		else if (argv[i][0] != '-')
+		{
+		input = argv[i];
 
-            break;
-        }
+		if (i + 1 < argc && argv[i + 1][0] != '-') {
+			output = argv[i + 1];
+		}
+		else
+		{
+			output.copy(input.str());
+			output.stripExtension();
+
+			if (ktx)
+			{
+				output.append(".ktx");
+			}
+			else
+			{
+				output.append(".dds");
+			}
+		}
+
+		break;
+		}
+		else if (strcmp("-alphaRef", argv[i]) == 0)
+		{
+			if (i + 1 < argc) {
+				alphaRef = atoi(argv[i + 1]);
+			}
+			else {
+				printf("please enter alphaRef number after -alphaRef");
+				return 0;
+			}
+			i++;
+		}
+		else if (strcmp("-alg", argv[i]) == 0)
+		{
+			if (i + 1 < argc) {
+				if (strcmp(argv[i + 1], "AlphaToCoverage") == 0) {
+					algType = nvtt::AlphaCorrectAlgorithm_AlphaToCoverage;
+				}
+				else if (strcmp(argv[i + 1], "ErrorDiffusion") == 0) {
+					algType = nvtt::AlphaCOrrectAlgorithm_ErrorDiffusion;
+				}
+				else if (strcmp(argv[i + 1], "AlphaPyramid") == 0) {
+					algType = nvtt::AlphaCorrectAlgorithm_AlphaPyramid;
+				}
+				else if(strcmp(argv[i + 1], "Hybird") == 0){
+					algType = nvtt::AlphaCorrectAlgorithm_Hybird;
+				}
+				else {
+					printf("please enter correct algorithm name, eg.AlphaToCoverage, ErrorDiffusion, AlphaPyramid, Hybird ");
+					return 0;
+				}
+				i++;
+			}
+		}
         else
         {
             printf("Warning: unrecognized option \"%s\"\n", argv[i]);
@@ -403,6 +438,8 @@ int main(int argc, char *argv[])
         printf("  -float        Load as floating point image.\n\n");
         printf("  -rgbm         Transform input to RGBM.\n\n");
         printf("  -rangescale   Scale image to use entire color range.\n\n");
+        printf("  -alphaRef	 alphaRef value.\n\n");
+        printf("  -alg		 alpha correction algorithm, eg. Coverage, ErrorDiffusion, AlphaPyramid, Hybird.\n\n");
 
         printf("Compression options:\n");
         printf("  -fast         Fast compression.\n");
@@ -613,6 +650,9 @@ int main(int argc, char *argv[])
         {
             inputOptions.setAlphaMode(nvtt::AlphaMode_None);
         }
+
+		inputOptions.setAlphaCorrectAlgorithm(algType);
+		inputOptions.setAlphaRef(alphaRef);
 
         // IC: Do not enforce D3D9 restrictions anymore.
         // Block compressed textures with mipmaps must be powers of two.

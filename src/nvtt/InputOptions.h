@@ -72,6 +72,10 @@ namespace nvtt
         nv::Vector4 heightFactors;
         nv::Vector4 bumpFrequencyScale;
 
+		//alpha test paramters
+		int alphaRef = 127;
+		nvtt::AlphaCorrectAlgorithm alphaCorrectAlg = nvtt::AlphaCorrectAlgorithm_None;
+
         // Adjust extents.
         uint maxExtent;
         RoundMode roundMode;

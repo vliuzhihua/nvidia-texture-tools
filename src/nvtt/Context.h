@@ -41,6 +41,10 @@ namespace nvtt
 {
     struct Mipmap;
 
+	struct AlphaFilterParam {
+		float dstCoverage;
+	};
+
     struct Compressor::Private
     {
         Private() {}
@@ -48,6 +52,8 @@ namespace nvtt
         bool compress(const InputOptions::Private & inputOptions, const CompressionOptions::Private & compressionOptions, const OutputOptions::Private & outputOptions) const;
         bool compress(const Surface & tex, int face, int mipmap, const CompressionOptions::Private & compressionOptions, const OutputOptions::Private & outputOptions) const;
         bool compress(AlphaMode alphaMode, int w, int h, int d, int face, int mipmap, const float * data, const CompressionOptions::Private & compressionOptions, const OutputOptions::Private & outputOptions) const;
+
+		void DoAlphaFilter(Surface* surface, const InputOptions::Private & inputOptions, const AlphaFilterParam& filterParam) const;
 
         void quantize(Surface & tex, const CompressionOptions::Private & compressionOptions) const;
 

@@ -269,6 +269,16 @@ namespace nvtt
         AlphaMode_Premultiplied,
     };
 
+	//alpha correct algorithm
+	enum AlphaCorrectAlgorithm
+	{
+		AlphaCorrectAlgorithm_None,
+		AlphaCorrectAlgorithm_AlphaToCoverage,
+		AlphaCOrrectAlgorithm_ErrorDiffusion,
+		AlphaCorrectAlgorithm_AlphaPyramid,
+		AlphaCorrectAlgorithm_Hybird,
+	};
+
     // Extents shape restrictions
     enum ShapeRestriction
     {
@@ -319,6 +329,10 @@ namespace nvtt
         NVTT_API void setHeightEvaluation(float redScale, float greenScale, float blueScale, float alphaScale);
         NVTT_API void setNormalFilter(float sm, float medium, float big, float large);
         NVTT_API void setNormalizeMipmaps(bool b);
+
+		// Alpha Correct about
+		NVTT_API void setAlphaCorrectAlgorithm(nvtt::AlphaCorrectAlgorithm alg);
+		NVTT_API void setAlphaRef(int val);
 
         // Set resizing options.
         NVTT_API void setMaxExtents(int d);
