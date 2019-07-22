@@ -556,7 +556,6 @@ namespace nvtt
         NVTT_API void toGreyScale(float redScale, float greenScale, float blueScale, float alphaScale);
         NVTT_API void setBorder(float r, float g, float b, float a);
         NVTT_API void fill(float r, float g, float b, float a);
-        NVTT_API void scaleAlphaToCoverage(float coverage, float alphaRef = 0.5f, int alpha_channel = 3);
         NVTT_API void toRGBM(float range = 1.0f, float threshold = 0.25f);
         NVTT_API void fromRGBM(float range = 1.0f, float threshold = 0.25f);
         NVTT_API void toLM(float range = 1.0f, float threshold = 0.0f);
@@ -574,6 +573,10 @@ namespace nvtt
         NVTT_API void setAtlasBorder(int w, int h, float r, float g, float b, float a);
 
         NVTT_API void toneMap(ToneMapper tm, float * parameters);
+
+		//alpha correct algorithm
+        NVTT_API void scaleAlphaToCoverage(float coverage, float alphaRef = 0.5f, int alpha_channel = 3);
+        NVTT_API void DoErrorDiffusion(int alpha_channel = 3);
 
         //NVTT_API void blockLuminanceScale(float scale);
 

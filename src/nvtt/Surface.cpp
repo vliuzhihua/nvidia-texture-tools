@@ -1810,6 +1810,13 @@ void Surface::scaleAlphaToCoverage(float coverage, float alphaRef/*= 0.5f*/, int
     m->image->scaleAlphaToCoverage(coverage, alphaRef, alpha_channel);
 }
 
+void Surface::DoErrorDiffusion(int alpha_channel) 
+{
+    if (isNull()) return;
+    detach();
+    m->image->DoErrorDiffusion(alpha_channel);
+}
+
 /*bool Surface::normalizeRange(float * rangeMin, float * rangeMax)
 {
     if (m->image == NULL) return false;

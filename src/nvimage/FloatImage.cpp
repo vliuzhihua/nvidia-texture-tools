@@ -1488,6 +1488,45 @@ void FloatImage::scaleAlphaToCoverage(float desiredCoverage, float alphaRef, int
     alphaTestCoverage(alphaRef, alphaChannel);
 #endif
 }
+void FloatImage::DoErrorDiffusion(int alphaChannel)
+{
+	const uint size = m_pixelCount;
+
+	for (uint c = 0; c < 1; c++) {
+		float * ptr = this->channel(alphaChannel+ c);
+		
+		/*
+		kernel pattern
+		1/16 	| - # 7|
+				| 3 5 1|
+		*/
+
+		for (int h = 0; h < m_height; h++) {
+			for (int w = 0; w < m_width; w++) {
+				int cur_idx = h * m_width + w;
+				float cur_alpha = ptr[cur_idx];
+				float target_alpha = cur_alpha >= 0.5 ? 1.0 : 0.0;
+				float err = cur_alpha - target_alpha;
+				ptr[cur_idx] = target_alpha;
+
+				//weight calculation
+				float e[4] = { 7 * err / 16.0f, 3 * err / 16.0f, 5 * err / 16.0f, 1 * err / 16.0f };
+				float de = err - (e[0] + e[1] + e[2] + e[3]);
+				e[0] += de;
+
+				// right pixel
+				if (w + 1 < m_width) ptr[h * m_width + w + 1] += e[0];
+				if (h + 1 < m_height) {
+					//bottom left pixel
+					if (w > 0) ptr[(h + 1) * m_width + w - 1] += e[1];
+					ptr[(h + 1) * m_width + w] += e[2];
+					if (w + 1 < m_width) ptr[(h + 1) * m_width + w + 1] += e[3];
+				}
+
+			}
+		}
+	}
+}
 
 FloatImage* FloatImage::clone() const
 {
