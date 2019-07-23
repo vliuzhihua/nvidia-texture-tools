@@ -2,10 +2,6 @@
 #include <vector>
 #include <assert.h>
 
-float frac(float v) {
-	return v - (int)v;
-}
-
 struct AlphaPyramidLevel
 {
 	int width, height;
@@ -52,10 +48,10 @@ struct AlphaPyramidLevel
 	}
 	void Alpha2CountBlock(const int *ix, int n, uint32_t count, int spp)
 	{
-		uint32_t sum = 0, remSum = 0;
+		float sum = 0, remSum = 0;
 		for (int j = 0; j < n; j++) {
 			float v = alpha[ix[j]];
-			uint32_t c = floor(v);
+			float c = floor(v);
 			float r = v - c;
 			if (spp > 1) {
 				c = floor(v*spp);
@@ -70,11 +66,11 @@ struct AlphaPyramidLevel
 
 		for (uint32_t rem = count - sum; rem > 0; rem--) {
 			int max_i = 0;
-			uint32_t max_v;
+			float max_v;
 			int eqCount = 1;
-			max_v = frac(alpha[ix[0]]);
+			max_v = nv::frac(alpha[ix[0]]);
 			for (int j = 1; j < n; j++) {
-				uint32_t v = frac(alpha[ix[j]]);
+				float v = nv::frac(alpha[ix[j]]);
 				if (max_v < v) {
 					max_v = v;
 					max_i = j;

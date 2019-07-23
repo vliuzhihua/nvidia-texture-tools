@@ -136,7 +136,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <Optimization>Full</Optimization>
+      <Optimization>Disabled</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <OmitFramePointers>true</OmitFramePointers>
       <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -167,6 +167,7 @@
     <ClCompile Include="..\..\..\src\nvimage\Quantize.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\src\nvimage\AlphaPyramid.h" />
     <ClInclude Include="..\..\..\src\nvimage\BlockDXT.h" />
     <ClInclude Include="..\..\..\src\nvimage\ColorBlock.h" />
     <ClInclude Include="..\..\..\src\nvimage\DirectDrawSurface.h" />

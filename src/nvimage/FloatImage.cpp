@@ -1475,7 +1475,7 @@ void FloatImage::scaleAlphaToCoverage(float desiredCoverage, float alphaRef, int
 #endif
 }
 
-void FloatImage::DoErrorDiffusion(int alphaChannel)
+void FloatImage::DoErrorDiffusion(int alphaChannel, int spp)
 {
 	float * ptr = this->channel(alphaChannel);
 	
@@ -1542,7 +1542,7 @@ void FloatImage::DoAlphaPyramid(int alphaChannel, int spp) {
 		}
 	}
 	// Step 2: Compute the number of texels that should pass the alpha test
-	uint32_t total_alpha = 0;
+	float total_alpha = 0;
 	if (m_width > 1 && m_height > 1) {
 		AlphaPyramidLevel *level = pyramid.back();
 		for (int i = 0; i < (int)level->alpha.size(); i++) {
@@ -1551,11 +1551,11 @@ void FloatImage::DoAlphaPyramid(int alphaChannel, int spp) {
 	}
 	else {
 		for (int i = 0; i < m_height * m_width; i++) {
-			uint32_t a0 = image[i];	// current value
+			float a0 = image[i];	// current value
 			total_alpha += a0;
 		}
 	}
-	int on_texels = (total_alpha*spp + 254) / 255;
+	int on_texels = std::floor(total_alpha);// (total_alpha*spp + 254) / 255;
 
 	// Step 3: Alpha to Count
 	int lvl = (int)pyramid.size() - 1;
@@ -1573,11 +1573,11 @@ void FloatImage::DoAlphaPyramid(int alphaChannel, int spp) {
 				count *= 256 / spp;
 			}
 
-			unsigned char a[9];
+			float a[9];
 			assert(n <= 9);
 			for (int j = 0; j < n; j++) a[j] = 0;
-			uint32_t remSum = 0;
-			uint32_t rem = count;
+			float remSum = 0;
+			float rem = count;
 			while (rem > 0) {
 				int max_i = 0;
 				int eqCount = 1;
@@ -1620,7 +1620,7 @@ void FloatImage::DoAlphaPyramid(int alphaChannel, int spp) {
 				}
 			}
 			else {
-				for (int j = 0; j < n; j++) image[ix[j]] = a[j] ? 255 : 0;
+				for (int j = 0; j < n; j++) image[ix[j]] = a[j] ? 1.0 : 0;
 			}
 		};
 

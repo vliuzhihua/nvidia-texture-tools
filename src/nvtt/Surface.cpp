@@ -1810,11 +1810,17 @@ void Surface::scaleAlphaToCoverage(float coverage, float alphaRef/*= 0.5f*/, int
     m->image->scaleAlphaToCoverage(coverage, alphaRef, alpha_channel);
 }
 
-void Surface::DoErrorDiffusion(int alpha_channel) 
+void Surface::DoErrorDiffusion(int alpha_channel, int spp) 
 {
     if (isNull()) return;
     detach();
-    m->image->DoErrorDiffusion(alpha_channel);
+    m->image->DoErrorDiffusion(alpha_channel, spp);
+}
+
+void Surface::DoAlphaPyramid(int alpha_channel, int spp) {
+    if (isNull()) return;
+    detach();
+    m->image->DoAlphaPyramid(alpha_channel, spp);
 }
 
 /*bool Surface::normalizeRange(float * rangeMin, float * rangeMax)

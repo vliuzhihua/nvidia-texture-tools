@@ -209,6 +209,7 @@ int Compressor::estimateSize(int w, int h, int d, int mipmapCount, const Compres
 
 void Compressor::Private::DoAlphaFilter(Surface* surface, const InputOptions::Private & inputOptions, const AlphaFilterParam& filterParam) const
 {
+
 	switch (inputOptions.alphaCorrectAlg) {
 		case nvtt::AlphaCorrectAlgorithm_AlphaToCoverage: {
 			surface->scaleAlphaToCoverage(filterParam.dstCoverage);
@@ -219,6 +220,7 @@ void Compressor::Private::DoAlphaFilter(Surface* surface, const InputOptions::Pr
 			break;
 		}
 		case nvtt::AlphaCorrectAlgorithm_AlphaPyramid: {
+			surface->DoAlphaPyramid();
 			break;
 		}
 		case nvtt::AlphaCorrectAlgorithm_Hybird: {

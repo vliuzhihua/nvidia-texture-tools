@@ -576,7 +576,8 @@ namespace nvtt
 
 		//alpha correct algorithm
         NVTT_API void scaleAlphaToCoverage(float coverage, float alphaRef = 0.5f, int alpha_channel = 3);
-        NVTT_API void DoErrorDiffusion(int alpha_channel = 3);
+        NVTT_API void DoErrorDiffusion(int alpha_channel = 3, int spp = 1);
+        NVTT_API void DoAlphaPyramid(int alpha_channel = 3, int spp = 1);
 
         //NVTT_API void blockLuminanceScale(float scale);
 

@@ -397,6 +397,9 @@ int main(int argc, char *argv[])
 				else if(strcmp(argv[i + 1], "Hybird") == 0){
 					algType = nvtt::AlphaCorrectAlgorithm_Hybird;
 				}
+				else if (strcmp(argv[i + 1], "None") == 0) {
+					algType = nvtt::AlphaCorrectAlgorithm_None;
+				}
 				else {
 					printf("please enter correct algorithm name, eg.AlphaToCoverage, ErrorDiffusion, AlphaPyramid, Hybird ");
 					return 0;
